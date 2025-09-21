@@ -1,0 +1,128 @@
+1.
+USAGE=$(df --output=pcent / | tail -n1 | tr -dc '0-9')
+
+
+df --output=pcent / → shows only the % usage column for / (root filesystem). Example:
+
+Use%
+16%
+
+
+tail -n1 → skips the header line and keeps just the last line (16%).
+
+tr -dc '0-9' → deletes everything except digits → 16.
+
+The result (16) is stored in the variable USAGE.
+
+So now USAGE=16.
+
+2.
+if ! [[ "$USAGE" =~ ^[0-9]+$ ]]; then
+  echo "$(date) - ERROR parsing disk usage: USAGE='$USAGE'" >&2
+  exit 1
+fi
+
+
+[[ "$USAGE" =~ ^[0-9]+$ ]] → a regex test that checks if USAGE is a valid number (only digits).
+
+! negates the test → so this block runs if USAGE is NOT a number.
+
+If parsing failed (e.g. empty or weird value), it prints an error with the current date:
+
+Tue Sep 10 13:40:21 - ERROR parsing disk usage: USAGE=''
+
+
+>&2 → redirects the message to stderr instead of stdout.
+
+exit 1 → exits the script with error code 1.
+
+This makes the script robust (it won’t continue with a bad value).
+
+3.
+if [ "$USAGE" -ge "$THRESHOLD" ]; then
+
+
+Compares numeric values.
+
+-ge means greater than or equal.
+
+If disk usage (USAGE) is at or above the threshold, the script runs the alert logic.
+
+4.
+MESSAGE="Warning: Disk usage has reached ${USAGE}% on $(hostname) at $(date -Iseconds)"
+
+
+Builds a warning message.
+
+$(hostname) inserts the system’s hostname (e.g. raina-pc).
+
+$(date -Iseconds) adds the exact timestamp like 2025-09-10T13:45:12+05:30.
+
+Example final message:
+
+Warning: Disk usage has reached 85% on raina-pc at 2025-09-10T13:45:12+05:30
+
+5.
+echo "$MESSAGE" | /usr/bin/mail -s "$SUBJECT" "$TO"
+
+
+Sends the message as an email.
+
+echo "$MESSAGE" → prints the warning.
+
+| → pipes it into the mail command.
+
+/usr/bin/mail → ensures cron finds the right binary (cron has a limited PATH).
+
+-s "$SUBJECT" → sets the subject line.
+
+"$TO" → recipient email address.
+
+
+
+explaination for tail and tr -dc commands:
+
+Step 1: Run df --output=pcent /
+
+This command prints only the % usage column for /.
+
+Example output:
+
+Use%
+16%
+
+
+First line = header → Use%
+
+Second line = actual disk usage → 16%
+
+Step 2: Add tail -n1
+df --output=pcent / | tail -n1
+
+
+tail -n1 means “show the last line only”.
+
+That removes the header and keeps just:
+
+16%
+
+Step 3: Add tr -dc '0-9'
+df --output=pcent / | tail -n1 | tr -dc '0-9'
+
+
+tr = translate or delete characters.
+
+-d = delete.
+
+-c '0-9' = complement (anything that is not a digit).
+
+So tr -dc '0-9' means → remove everything except numbers.
+
+Input:
+
+16%
+
+
+Output:
+
+16

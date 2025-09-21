@@ -1,0 +1,116 @@
+#!/bin/bash
+Tells Linux to run the script with the Bash shell.
+
+🔹 Threshold setup
+bash
+Copy code
+THRESHOLD=10
+Defines the limit (%) at which you want to be alerted.
+
+Example: if disk usage is ≥ 10%, an alert email will be sent.
+
+🔹 Email settings
+bash
+Copy code
+TO="kannangunasekaran30@gmail.com"
+SUBJECT="Disk Usage Alert"
+TO → recipient email address.
+
+SUBJECT → subject line for the alert email.
+
+🔹 Get current disk usage
+bash
+Copy code
+USAGE=$(df -h / | awk 'NR==2 {print $5}' | sed 's/%//')
+Let’s break this down:
+
+df -h / → shows disk usage for / (root filesystem) in human-readable format.
+Example output:
+
+nginx
+Copy code
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/nvme0n1p5  345G   50G  278G  16% /
+awk 'NR==2 {print $5}' → takes the 2nd line (ignores the header) and prints the 5th column, which is the usage percentage (16%).
+
+sed 's/%//' → removes the % sign, leaving just the number (16).
+
+➡️ So if your root is 16% full, USAGE=16.
+
+🔹 Compare usage with threshold
+bash
+Copy code
+if [ "$USAGE" -ge "$THRESHOLD" ]; then
+Checks if current usage (USAGE) is greater than or equal to threshold (THRESHOLD).
+
+Example: 16 >= 10 → condition is true.
+
+🔹 Prepare message & send email
+bash
+Copy code
+MESSAGE="Warning: Disk usage has reached ${USAGE}% on $(hostname)"
+echo "$MESSAGE" | mail -s "$SUBJECT" "$TO"
+MESSAGE=... → creates the warning message.
+Example:
+
+pgsql
+Copy code
+Warning: Disk usage has reached 16% on raina
+($(hostname) inserts the current machine name, useful if you’re monitoring multiple servers).
+
+echo "$MESSAGE" | mail -s "$SUBJECT" "$TO"
+
+Sends the message as the email body.
+
+-s "$SUBJECT" sets the subject line.
+
+"$TO" is the recipient.
+
+🔹 End of script
+bash
+Copy code
+fi
+
+
+explaination for "s/%/// alone:
+
+sed 's/%//'
+🔹 What sed does
+sed = stream editor, used to search and modify text.
+
+General format:
+
+nginx
+Copy code
+sed 's/pattern/replacement/'
+s → substitute
+
+pattern → what to search for
+
+replacement → what to replace it with
+
+🔹 In your case
+bash
+Copy code
+sed 's/%//'
+s/%// means:
+
+Find the character %
+
+Replace it with nothing (// → empty string)
+
+🔹 Example
+If the input is:
+
+shell
+Copy code
+16%
+After running:
+
+bash
+Copy code
+echo "16%" | sed 's/%//'
+The output will be:
+
+Copy code
+16
